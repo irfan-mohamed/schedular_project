@@ -313,7 +313,7 @@ function AddSubjects() {
                       <div className="mb-3">
                         <label htmlFor="lecturesPerWeek" className="form-label">
                           <FontAwesomeIcon icon={faChalkboard} className="me-2" />
-                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Lectures per Week:</span>
+                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Lecture Hours per Week:</span>
                         </label>
                         <input
                           type="number"
@@ -358,7 +358,7 @@ function AddSubjects() {
                       <div className="mb-3">
                         <label htmlFor="labsPerWeek" className="form-label">
                           <FontAwesomeIcon icon={faFlask} className="me-2" />
-                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Labs per Week:</span>
+                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Lab Hours per Week:</span>
                         </label>
                         <input
                           type="number"
@@ -403,7 +403,7 @@ function AddSubjects() {
                       <div className="mb-3">
                         <label htmlFor="lecturesPerWeek" className="form-label">
                           <FontAwesomeIcon icon={faChalkboard} className="me-2" />
-                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Lectures per Week:</span>
+                          <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>No. of Lecture Hour per Week:</span>
                         </label>
                         <input
                           type="number"
@@ -450,7 +450,7 @@ function AddSubjects() {
                   <th className="topic">Subject Name</th>
                   <th className="topic">Subject Type</th>
                   <th className="topic">Semester</th>
-                  <th className="topic">Lectures/Labs per Week</th>
+                  <th className="topic">Lecture/Lab Hours per Week</th>
                   <th className="topic">Department</th>
                   <th className="topic">Actions</th>
                 </tr>

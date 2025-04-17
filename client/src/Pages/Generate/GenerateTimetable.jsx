@@ -1,137 +1,108 @@
-// import React, { useState, useEffect } from 'react';
-// import 'bootstrap/dist/css/bootstrap.min.css';
-// import 'bootstrap-icons/font/bootstrap-icons.css';
-// import SideNavbar from '../../Components/SideNavbar'; // Assuming SideNavbar component is in the same directory
-// import axios from 'axios'; // Import Axios for making HTTP requests
-
-// function GenerateTimetable() {
-//     const [semester, setSemester] = useState('');
-//     const [branch, setBranch] = useState('');
-//     const [timetable, setTimetable] = useState([]);
-
-//     const handleGenerate = async () => {
-//         // Make an HTTP request to the backend to generate the timetable
-//         try {
-//             const response = await axios.get('http://localhost:5000/api/generateTimeTable');
-//             console.log(response.data.timetable); // Ensure the structure of the response
-//             setTimetable(response.data.timetable);
-//         } catch (error) {
-//             console.error('Error fetching timetable:', error);
-//         }
-//     };
-
-//     return (
-//         <>
-//             <div className="container-fluid">
-//                 <div className="row">
-//                     <div className="col-auto col-sm-3.2 bg-dark d-flex flex-column justify-content-between min-vh-100">
-//                         <SideNavbar />
-//                     </div>
-//                     <div className="col">
-//                         <h1 className="text-center mt-5 mb-4">Generate Timetable</h1>
-//                         <div className="row">
-//                             <div className="col">
-//                                 <div className="mb-3">
-//                                     <label htmlFor="semester" className="form-label">Semester:</label>
-//                                     <input type="text" className="form-control" id="semester" value={semester} onChange={(e) => setSemester(e.target.value)} />
-//                                 </div>
-//                                 <div className="mb-3">
-//                                     <label htmlFor="branch" className="form-label">Choose Branch:</label>
-//                                     <select className="form-select" id="branch" value={branch} onChange={(e) => setBranch(e.target.value)}>
-//                                         <option value="">Choose Branch</option>
-//                                         <option value="Computer-A">Computer-A</option>
-//                                         <option value="Computer-B">Computer-B</option>
-//                                         <option value="Electrical">Electrical</option>
-//                                         <option value="Mechanical">Mechanical</option>
-//                                     </select>
-//                                 </div>
-//                                 <div className="text-center">
-//                                     <button className="btn btn-primary" onClick={handleGenerate}>Generate</button>
-//                                 </div>
-//                             </div>
-//                         </div>
-//                     </div>
-//                 </div>
-//                 <div className="row">
-//                     <div className="col">
-//                         <h2 className="text-center my-4">Timetable</h2>
-//                         <table border="1">
-//                             <tbody>
-//                                 {/* Check if timetable is an array before mapping */}
-//                                 {timetable && timetable.map((branchData, branchIndex) => (
-//                                     <tr key={branchIndex}>
-//                                         <th>{branchData.semester}</th>
-//                                         {/* Check if branchData.timetable is an array before mapping */}
-//                                         {branchData.timetable && branchData.timetable.map((day, dayIndex) => (
-//                                             <React.Fragment key={dayIndex}>
-//                                                 <th>{day}</th>
-//                                                 {day.map((time, timeIndex) => (
-//                                                     <td key={timeIndex}>{time ? `${time.subject} - ${time.teacher}` : '-'}</td>
-//                                                 ))}
-//                                             </React.Fragment>
-//                                         ))}
-//                                     </tr>
-//                                 ))}
-//                             </tbody>
-//                         </table>
-//                     </div>
-//                 </div>
-//             </div>
-//         </>
-//     );
-// }
-
-// export default GenerateTimetable;
-
-
-
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-const Timetable = () => {
+const periods = [
+  { label: "P1", time: "09:00 - 09:50" },
+  { label: "P2", time: "09:50 - 10:40" },
+  { label: "BREAK", time: "10:40 - 10:50", isBreak: true },
+  { label: "P3", time: "10:50 - 11:40" },
+  { label: "P4", time: "11:40 - 12:30" },
+  { label: "LUNCH", time: "12:30 - 01:20", isBreak: true },
+  { label: "P5", time: "01:20 - 02:10" },
+  { label: "P6", time: "02:10 - 03:00" },
+  { label: "BREAK", time: "03:00 - 03:10", isBreak: true },
+  { label: "P7", time: "03:10 - 04:00" },
+  { label: "P8", time: "04:00 - 04:50" },
+];
+
+const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+
+const GenerateTimetable = () => {
   const [timetableData, setTimetableData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [department, setDepartment] = useState("");
+
+  const fetchTimetable = async () => {
+    try {
+      setLoading(true);
+      const department = localStorage.getItem("department");
+      const response = await axios.get('http://localhost:5001/api/generateTimetable', {
+        headers: { department }
+      });
+      setTimetableData(response.data);
+    } catch (error) {
+      console.error("Error generating timetable:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    axios.get("https://automatic-timetable-generator.onrender.com/api/generateTimeTable")
-      .then(response => {
-        console.log(response, "response");
-        setTimetableData(response.data.timetable);
-      })
-      .catch(error => {
-        console.error("Error fetching timetable data: ", error);
-      });
+    const storedDepartment = localStorage.getItem("department") || "CSE";
+    setDepartment(storedDepartment);
   }, []);
 
+  const renderPeriodCell = (period) => {
+    if (!period || !period.subject) return <span>-</span>;
+    const isLab = period.subject.toLowerCase().includes("lab");
+
+    return (
+      <div className="d-flex flex-column align-items-center">
+        <strong className="text-uppercase text-center">
+          {period.subject} {isLab ? <span className="text-muted">(Lab)</span> : null}
+        </strong>
+        <small className="text-muted text-center">{period.teacher}</small>
+        <small className="text-muted text-center">{period.room}</small>
+      </div>
+    );
+  };
+
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">Timetable</h2>
-      {timetableData.map((item, index) => (
+    <div className="container mt-4">
+      <h2 className="text-center mb-4">Generated Timetables - {department}</h2>
+      <div className="text-center mb-4">
+        <button onClick={fetchTimetable} className="btn btn-primary">
+          {loading ? "Generating..." : "Generate Timetable"}
+        </button>
+      </div>
+
+      {timetableData.map((semesterData, index) => (
         <div key={index} className="mb-5">
-          <h3 className="text-center mb-3">{item.department} - Semester {item.semester}</h3>
-          <table className="table table-bordered">
+          <h4 className="text-center mb-3">Semester {semesterData.semester}</h4>
+          <table className="table table-bordered text-center">
             <thead className="thead-dark">
               <tr>
-                <th>Day</th>
-                <th>Period 1</th>
-                <th>Period 2</th>
-                <th>Period 3</th>
-                <th>Period 4</th>
-                <th>Period 5</th>
-                <th>Period 6</th>
+                <th className="align-middle">Day / Period</th>
+                {periods.map((p, idx) => (
+                  <th key={idx} className="align-middle">
+                    {p.label}
+                    <br />
+                    <small>{p.time}</small>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {item.timetable.map((day, dayIndex) => (
-                <tr key={dayIndex}>
-                  <td className="font-weight-bold">{["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][dayIndex]}</td>
-                  {day.map((period, periodIndex) => (
-                    <td key={periodIndex} className="p-3">
-                      <div className="border p-2 bg-light">
-                        {period ? `${period.subject} - ${period.teacher}` : "-"}
-                      </div>
-                    </td>
-                  ))}
+              {semesterData.timetable.slice(0, 5).map((dayData, i) => (
+                <tr key={i}>
+                  <td className="font-weight-bold align-middle">{weekdays[i]}</td>
+                  {periods.map((p, j) => {
+                    if (p.isBreak) {
+                      return (
+                        <td key={j} className="table-warning align-middle font-italic">
+                          {p.label}
+                        </td>
+                      );
+                    } else {
+                      const lectureIndex = j;
+                      return (
+                        <td key={j} className="align-middle">
+                          {renderPeriodCell(dayData[lectureIndex])}
+                        </td>
+                      );
+                    }
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -142,4 +113,4 @@ const Timetable = () => {
   );
 };
 
-export default Timetable;
+export default GenerateTimetable;
