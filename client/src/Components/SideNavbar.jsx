@@ -35,17 +35,11 @@ function SideNavbar() {
                   <span className='ms-2 d-none d-sm-inline font-weight-bold fs-5'>ADD CLASSROOMS</span>
                 </Link>
               </li>
-              <li className="nav-item text-white my-1 mb-5 py-2 py-sm-0 dropdown">
-                <Link to="/assign" className="nav-link text-white text-center text-sm-start dropdown-toggle" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <i className="bi bi-journal-check fs-3"></i>
-                  <span className='ms-2 d-none d-sm-inline font-weight-bold fs-4'>ASSIGN</span>
+              <li className="nav-item text-white my-1 mb-5 py-2 py-sm-0">
+                <Link to="/timetables" className="nav-link text-white text-center text-sm-start" aria-current="page">
+                  <i className="bi bi-calendar-week fs-3"></i>
+                  <span className='ms-2 d-none d-sm-inline font-weight-bold fs-5'>TIMETABLES</span>
                 </Link>
-                <ul className="dropdown-menu bg-light" aria-labelledby="navbarDropdown" style={{ left: 'auto', right: 0 }}>
-                  <li><Link to="/assign-theory" className="dropdown-item"><i className="bi bi-book fs-3"></i> Assign Theory Subjects</Link></li>
-                  <li><Link to="/assign-lab" className="dropdown-item"><i className="bi bi-door-closed fs-3"></i> Assign Lab Subjects</Link></li>
-                  <li><Link to="/assign-elective" className="dropdown-item"><i className="bi bi-lightning fs-3"></i> Assign Elective Subjects</Link></li>
-                  <li><Link to="/assign-rooms" className="dropdown-item"><i className="bi bi-door-closed fs-3"></i> Assign Rooms</Link></li>
-                </ul>
               </li>
               <li className="nav-item text-white my-1 mb-5 py-2 py-sm-0">
                 <Link to="/generate-timetable" className="nav-link text-white text-center text-sm-start" aria-current="page">

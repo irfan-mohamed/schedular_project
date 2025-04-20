@@ -1,0 +1,16 @@
+.tag {
+    background-color: #5c3bcc;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    margin-right: 5px;
+    display: inline-block;
+  }
+  .tag-remove-btn {
+    background: none;
+    border: none;
+    color: white;
+    margin-left: 5px;
+    cursor: pointer;
+  }
+  

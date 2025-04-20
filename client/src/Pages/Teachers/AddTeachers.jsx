@@ -3,7 +3,7 @@ import SideNavbar from "../../Components/SideNavbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faIdCard, faEnvelope } from "@fortawesome/free-solid-svg-icons";
 import axios from 'axios';
-import { confirmAlert } from 'react-confirm-alert'; 
+import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -16,7 +16,7 @@ function AddTeachers() {
   const [formData, setFormData] = useState({
     teacherName: "",
     teacherID: "",
-    preferences: "",
+    preferences: [],
     email: ""
   });
 
@@ -50,7 +50,7 @@ function AddTeachers() {
           department
         }
       });
-      setTeachers(response?.data.data); 
+      setTeachers(response?.data.data);
     } catch (error) {
       toast.error("Error fetching teachers:", error);
     }
@@ -66,10 +66,11 @@ function AddTeachers() {
           onClick: async () => {
             try {
               const response = await axios.delete(`http://localhost:5001/api/deleteTeacher/${id}`,
-                {headers: {
-                  department: localStorage.getItem('department')
-                }
-              });
+                {
+                  headers: {
+                    department: localStorage.getItem('department')
+                  }
+                });
               if (response.status === 200) {
                 toast.success('Teacher deleted successfully');
                 setRefereshToken(response);
@@ -81,15 +82,15 @@ function AddTeachers() {
               console.error('Error:', error);
             }
           },
-          className: 'confirm-button-yes' 
+          className: 'confirm-button-yes'
         },
         {
           label: 'No',
-          onClick: () => {}, 
-          className: 'confirm-button-no' 
+          onClick: () => { },
+          className: 'confirm-button-no'
         }
       ],
-      overlayClassName: 'confirm-overlay' 
+      overlayClassName: 'confirm-overlay'
     });
   };
 
@@ -149,6 +150,21 @@ function AddTeachers() {
       console.error('Error:', error);
     }
   };
+  const handlePreferenceDoubleClick = (subject) => {
+    if (!formData.preferences.includes(subject)) {
+      setFormData((prevData) => ({
+        ...prevData,
+        preferences: [...prevData.preferences, subject]
+      }));
+    }
+  };
+  const handleRemovePreference = (subject) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      preferences: prevData.preferences.filter((pref) => pref !== subject)
+    }));
+  };
+
 
   return (
     <>
@@ -199,24 +215,43 @@ function AddTeachers() {
                   <div className="mb-3">
                     <label htmlFor="preferences" className="form-label">
                       <FontAwesomeIcon icon={faUser} className="me-2" />
-                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Subject Preference:</span>
+                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Subject Preferences (Double-click to select):</span>
                     </label>
-                    <select
-                      className="form-select"
-                      id="preferences"
-                      name="preferences"
-                      value={formData.preferences}
-                      onChange={handleChange}
-                      style={{ fontWeight: "bold", borderColor: "#77757c" }}
-                    >
-                      <option value="">Select Preference (Subject)</option>
-                      {subjectList.map((sub, idx) => (
-                        <option key={idx} value={sub.subjectName}>
-                          {sub.subjectName} ({sub.subjectType}) - Sem {sub.semester}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="form-control" style={{ minHeight: '100px', overflowY: 'auto', borderColor: "#77757c" }}>
+                      {subjectList.map((sub, idx) => {
+                        const subLabel = `${sub.subjectName} (${sub.subjectType}) - Sem ${sub.semester}`;
+                        return (
+                          <div
+                            key={idx}
+                            style={{ cursor: "pointer", padding: "4px", fontWeight: "bold" }}
+                            onDoubleClick={() => handlePreferenceDoubleClick(sub.subjectName)}
+                          >
+                            {subLabel}
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  {/* Tag display */}
+                  {formData.preferences.length > 0 && (
+                    <div className="mb-3">
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {formData.preferences.map((pref, index) => (
+                          <span key={index} className="badge bg-primary" style={{ padding: "8px", fontSize: "0.9rem" }}>
+                            {pref}
+                            <button
+                              type="button"
+                              className="btn-close btn-close-white ms-2"
+                              onClick={() => handleRemovePreference(pref)}
+                              style={{ fontSize: "0.6rem" }}
+                            />
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
 
                   <div className="mb-3">
                     <label htmlFor="email" className="form-label">
@@ -243,7 +278,7 @@ function AddTeachers() {
               </div>
             </div>
 
-            <div> 
+            <div>
               <h2 className="text-center mt-5 mb-4">Teachers</h2>
               <table className="table table-striped table-bordered mt-4">
                 <thead className="thead-light">
@@ -260,7 +295,11 @@ function AddTeachers() {
                     <tr key={index} className={index % 2 === 0 ? 'table-light' : 'table-secondary'}>
                       <td className="table-data">{item.teacherName}</td>
                       <td className="table-data">{item.teacherID}</td>
-                      <td className="table-data">{item.preferences}</td>
+                      <td className="table-data">
+                        {Array.isArray(item.preferences)
+                          ? item.preferences.join(', ')
+                          : JSON.parse(item.preferences || '[]').join(', ')}
+                      </td>
                       <td className="table-data">{item.email}</td>
                       <td className="table-data">
                         <button className="btn btn-warning" onClick={() => handleUpdate(item)}>Update</button>

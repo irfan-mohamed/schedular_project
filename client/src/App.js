@@ -19,7 +19,8 @@ import Home from './Pages/Home'
 import './styling/HomePage.css'
 import About from './Pages/About';
 import Features from './Pages/Features';
-
+import LecturerTimetable from "./Pages/LecturerTimetable";
+import SavedTimetablePage from "./Pages/Timetable";
 
 function App() {
   return (
@@ -40,6 +41,9 @@ function App() {
         <Route path="/assign-rooms" element={<AssignRooms />} />
         <Route path="/generate" element={<AddSubjects/>}></Route>
         <Route path="/generate-timetable" element={<GenerateTimetable />}></Route>
+        <Route path="/lecturer-timetable/:lecturerName" element={<LecturerTimetable />} />
+        <Route path="/lecturer-timetable/:teacherID" element={<LecturerTimetable />} />
+        <Route path="/timetables" element={<SavedTimetablePage />} />
 
       </Routes>
     </Router>

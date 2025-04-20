@@ -42,6 +42,8 @@ function SignInPage() {
             if (data.user) {
                 if (signInType === "teacher") {
                     localStorage.setItem('username', data.user.teacherName || "Unknown Teacher");
+                    localStorage.setItem('teacherID', data.user.teacherID);
+                    navigate(`/lecturer-timetable/${data.user.teacherName}`);
                 } else {
                     localStorage.setItem('username', data.user.username || "Unknown Admin");
                     localStorage.setItem('department', data.user.department);

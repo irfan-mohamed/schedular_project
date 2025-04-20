@@ -8,7 +8,7 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const classroomRoutes = require('./routes/classroomRoutes');
 const assignmentRoutes = require('./routes/assignmentRoutes');
 const generateTimetableRoute = require('./routes/generateTimetable');
-
+const getSavedTimetable = require('./routes/generateTimetable');
 
 const app = express();
 const PORT = 5001;
@@ -21,6 +21,7 @@ app.use('/api', subjectRoutes);
 app.use('/api', teacherRoutes);
 app.use('/api', classroomRoutes);
 app.use('/api', generateTimetableRoute);
+app.use('/api', getSavedTimetable);
 app.use(assignmentRoutes);
 
 app.listen(PORT, () => {

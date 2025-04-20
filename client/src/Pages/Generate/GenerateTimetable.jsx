@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { useNavigate } from 'react-router-dom';
 
 const periods = [
   { label: "P1", time: "09:00 - 09:50" },
@@ -30,7 +31,7 @@ const GenerateTimetable = () => {
       const response = await axios.get('http://localhost:5001/api/generateTimetable', {
         headers: { department }
       });
-      setTimetableData(response.data);
+      setTimetableData(response.data.data);
     } catch (error) {
       console.error("Error generating timetable:", error);
     } finally {
@@ -43,21 +44,32 @@ const GenerateTimetable = () => {
     setDepartment(storedDepartment);
   }, []);
 
+  const navigate = useNavigate();
+
   const renderPeriodCell = (period) => {
     if (!period || !period.subject) return <span>-</span>;
     const isLab = period.subject.toLowerCase().includes("lab");
-
+    const handleLecturerClick = () => {
+      navigate(`/lecturer-timetable/${encodeURIComponent(period.teacher)}`);
+    };
     return (
       <div className="d-flex flex-column align-items-center">
         <strong className="text-uppercase text-center">
           {period.subject} {isLab ? <span className="text-muted">(Lab)</span> : null}
         </strong>
-        <small className="text-muted text-center">{period.teacher}</small>
+        <small
+          className="text-primary text-center cursor-pointer"
+          style={{ cursor: 'pointer', textDecoration: 'underline' }}
+          onClick={handleLecturerClick}
+        >
+          {period.teacher}
+        </small>
         <small className="text-muted text-center">{period.room}</small>
       </div>
     );
   };
-
+  // ✅ Move this INSIDE the component to access `department`
+  
   return (
     <div className="container mt-4">
       <h2 className="text-center mb-4">Generated Timetables - {department}</h2>
@@ -66,49 +78,52 @@ const GenerateTimetable = () => {
           {loading ? "Generating..." : "Generate Timetable"}
         </button>
       </div>
-
-      {timetableData.map((semesterData, index) => (
-        <div key={index} className="mb-5">
-          <h4 className="text-center mb-3">Semester {semesterData.semester}</h4>
-          <table className="table table-bordered text-center">
-            <thead className="thead-dark">
-              <tr>
-                <th className="align-middle">Day / Period</th>
-                {periods.map((p, idx) => (
-                  <th key={idx} className="align-middle">
-                    {p.label}
-                    <br />
-                    <small>{p.time}</small>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {semesterData.timetable.slice(0, 5).map((dayData, i) => (
-                <tr key={i}>
-                  <td className="font-weight-bold align-middle">{weekdays[i]}</td>
-                  {periods.map((p, j) => {
-                    if (p.isBreak) {
-                      return (
-                        <td key={j} className="table-warning align-middle font-italic">
-                          {p.label}
-                        </td>
-                      );
-                    } else {
-                      const lectureIndex = j;
-                      return (
-                        <td key={j} className="align-middle">
-                          {renderPeriodCell(dayData[lectureIndex])}
-                        </td>
-                      );
-                    }
-                  })}
+      
+      <div id="timetable-section">
+        {timetableData.map((semesterData, index) => (
+          <div key={index} className="mb-5">
+            <h4 className="text-center mb-3">Semester {semesterData.semester}</h4>
+            <table className="table table-bordered text-center">
+              <thead className="thead-dark">
+                <tr>
+                  <th className="align-middle">Day / Period</th>
+                  {periods.map((p, idx) => (
+                    <th key={idx} className="align-middle">
+                      {p.label}
+                      <br />
+                      <small>{p.time}</small>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ))}
+              </thead>
+              <tbody>
+                {semesterData.timetable.slice(0, 5).map((dayData, i) => (
+                  <tr key={i}>
+                    <td className="font-weight-bold align-middle">{weekdays[i]}</td>
+                    {periods.map((p, j) => {
+                      if (p.isBreak) {
+                        return (
+                          <td key={j} className="table-warning align-middle font-italic">
+                            {p.label}
+                          </td>
+                        );
+                      } else {
+                        const lectureIndex = j;
+                        return (
+                          <td key={j} className="align-middle">
+                            {renderPeriodCell(dayData[lectureIndex])}
+                          </td>
+                        );
+                      }
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+      </div>
+
     </div>
   );
 };

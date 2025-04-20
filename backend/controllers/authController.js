@@ -1,4 +1,3 @@
-// controllers/authController.js
 const db = require('../db');
 
 const loginHandler = (req, res) => {
@@ -37,7 +36,8 @@ const loginHandler = (req, res) => {
                 return res.status(200).json({
                     user: {
                         teacherName: teacher.teacherName,
-                        department: teacher.department, // if available
+                        teacherID: teacher.teacherID,
+                        department: teacher.department, // Optional, if needed
                         role: 'teacher'
                     }
                 });
@@ -50,6 +50,5 @@ const loginHandler = (req, res) => {
         return res.status(400).json({ message: 'Invalid sign-in type' });
     }
 };
-
 
 module.exports = { loginHandler };
