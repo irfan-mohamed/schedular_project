@@ -14,6 +14,8 @@ router.post('/teachers', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  // Store subject IDs in preferences instead of subject names
+  // This makes it easier to maintain relationships between teachers and subjects
   const preferencesString = JSON.stringify(preferences || []);
 
   const sql = 'INSERT INTO teachers (teacherName, teacherID, preferences, email, department, designation) VALUES (?, ?, ?, ?, ?, ?)';
@@ -39,6 +41,7 @@ router.get('/fetchteachers', (req, res) => {
   db.query(sql, [department], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
 
+    // Parse the preferences which now contain subject IDs
     const parsedResults = results.map(teacher => ({
       ...teacher,
       preferences: JSON.parse(teacher.preferences || '[]'),
@@ -59,6 +62,7 @@ router.put('/updateTeacher/:id', (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
+  // Store subject IDs in preferences
   const preferencesString = JSON.stringify(preferences || []);
 
   const sql = `

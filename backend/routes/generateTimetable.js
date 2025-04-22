@@ -17,7 +17,7 @@ const GA_CONFIG = {
 
 // Constants
 const DAYS = 5; // Monday to Friday
-const PERIODS = 11; // Total periods per day
+const PERIODS = 11; // 8 periods + 3 breaks
 const MAX_TEACHER_PERIODS_PER_DAY = 5; // Maximum periods a teacher can teach in a day
 const MAX_SUBJECT_PERIODS_PER_DAY = 3; // Maximum periods a subject can be scheduled in a day
 const MIN_PERIODS_PER_DAY = 6; // Minimum periods to fill per day
@@ -78,12 +78,11 @@ class Timetable {
     });
   }
   
-  findTeacher(subjectName) {
-    return this.teachers.find(t => 
-      JSON.parse(t.preferences).some(p => 
-        p.toLowerCase() === subjectName.toLowerCase()
-      )
-    );
+  findTeacher(subject) {
+    return this.teachers.find(t => {
+      const preferences = JSON.parse(t.preferences || '[]');
+      return preferences.includes(subject.id);
+    });
   }
   
   findRoomsByType(roomType) {
@@ -115,18 +114,52 @@ class Timetable {
   }
   
   randomInitialize() {
+    // First, schedule all labs
     const labs = this.subjects.filter(s => s.subjectType === 'Lab');
-    const theories = this.subjects.filter(s => s.subjectType === 'Theory');
-    
     this.scheduleLabs(labs);
+    
+    // Then, schedule all theory subjects
+    const theories = this.subjects.filter(s => s.subjectType === 'Theory');
     this.scheduleTheories(theories);
+    
+    // Schedule any unassigned subjects
     this.scheduleUnassignedSubjects();
+    
+    // Fill any remaining empty slots
     this.fillEmptySlots();
+    
+    // Final pass to ensure all slots are filled
+    for (let day = 0; day < DAYS; day++) {
+      for (let period = 0; period < PERIODS; period++) {
+        // Skip break periods (periods 2, 5, and 8)
+        if (period === 2 || period === 5 || period === 8) {
+          // Mark break periods with a special value
+          this.schedule[day][period] = {
+            subject: "BREAK",
+            teacher: "Break",
+            room: "Break"
+          };
+          continue;
+        }
+        
+        if (!this.schedule[day][period]) {
+          // Find a subject that can be scheduled here
+          const subject = this.findSubjectForEmptySlot(day, period);
+          if (subject) {
+            this.fillEmptySlotWithSubject(day, period, subject);
+          } else {
+            // If no subject found, use a random subject
+            const randomSubject = getRandomElement(this.subjects);
+            this.fillEmptySlotWithSubject(day, period, randomSubject);
+          }
+        }
+      }
+    }
   }
   
   scheduleLabs(labs) {
     for (const lab of labs) {
-      const teacher = this.findTeacher(lab.subjectName);
+      const teacher = this.findTeacher(lab);
       const labRooms = this.findRoomsByType('Lab');
       
       if (!teacher || labRooms.length === 0) continue;
@@ -169,7 +202,7 @@ class Timetable {
   
   scheduleTheories(theories) {
     for (const theory of theories) {
-      const teacher = this.findTeacher(theory.subjectName);
+      const teacher = this.findTeacher(theory);
       const theoryRooms = this.findRoomsByType('Theory');
       
       if (!teacher || theoryRooms.length === 0) continue;
@@ -220,11 +253,10 @@ class Timetable {
   
   scheduleUnassignedSubjects() {
     const unassignedSubjects = this.subjects.filter(subject => {
-      return !this.teachers.some(teacher => 
-        JSON.parse(teacher.preferences).some(p => 
-          p.toLowerCase() === subject.subjectName.toLowerCase()
-        )
-      );
+      return !this.teachers.some(teacher => {
+        const preferences = JSON.parse(teacher.preferences || '[]');
+        return preferences.includes(subject.id);
+      });
     });
     
     for (const subject of unassignedSubjects) {
@@ -289,37 +321,99 @@ class Timetable {
     }
   }
 
+  countScheduledPeriods(subject) {
+    let count = 0;
+    for (let day = 0; day < DAYS; day++) {
+      for (let period = 0; period < PERIODS; period++) {
+        const slot = this.schedule[day][period];
+        if (slot && slot.subject && slot.subject.includes(subject.subjectName)) {
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
   fillEmptySlots() {
-    // First pass: Try to schedule more periods of existing subjects
+    // First pass: try to schedule additional periods for existing subjects
     for (const subject of this.subjects) {
-      const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
-      const remainingPeriods = subject.periodsPerWeek - scheduledCount;
+      const scheduledPeriods = this.countScheduledPeriods(subject);
+      const remainingPeriods = subject.periodsPerWeek - scheduledPeriods;
       
       if (remainingPeriods > 0) {
         this.scheduleAdditionalPeriods(subject, remainingPeriods);
       }
     }
     
-    // Second pass: Fill remaining slots with any available subject
+    // Second pass: fill any remaining empty slots
     for (let day = 0; day < DAYS; day++) {
-      let dailyPeriods = 0;
-      
-      // Count scheduled periods for this day
       for (let period = 0; period < PERIODS; period++) {
-        if (this.schedule[day][period]) {
-          dailyPeriods++;
+        // Skip break periods (periods 2, 5, and 8)
+        if (period === 2 || period === 5 || period === 8) {
+          // Mark break periods with a special value
+          this.schedule[day][period] = {
+            subject: "BREAK",
+            teacher: "Break",
+            room: "Break"
+          };
+          continue;
+        }
+        
+        if (!this.schedule[day][period]) {
+          // Try to find a subject that needs more periods
+          const subject = this.findSubjectForEmptySlot(day, period);
+          if (subject) {
+            this.fillEmptySlotWithSubject(day, period, subject);
+          } else {
+            // If no suitable subject found, use a random subject
+            const randomSubject = getRandomElement(this.subjects);
+            this.fillEmptySlotWithSubject(day, period, randomSubject);
+          }
         }
       }
-      
-      // Fill day to meet minimum periods
-      if (dailyPeriods < MIN_PERIODS_PER_DAY) {
-        this.fillDayToMinimum(day, MIN_PERIODS_PER_DAY - dailyPeriods);
-      }
-      
-      // Fill any remaining empty slots
+    }
+    
+    // Final pass: force fill any remaining empty slots
+    for (let day = 0; day < DAYS; day++) {
       for (let period = 0; period < PERIODS; period++) {
+        // Skip break periods
+        if (period === 2 || period === 5 || period === 8) {
+          continue;
+        }
+        
         if (!this.schedule[day][period]) {
-          this.fillEmptySlot(day, period);
+          // Force fill with a random subject
+          const randomSubject = getRandomElement(this.subjects);
+          const teacher = this.findTeacher(randomSubject);
+          const room = this.findRoomsByType(randomSubject.subjectType === 'Lab' ? 'Lab' : 'Theory')[0];
+          
+          if (teacher && room) {
+            this.schedule[day][period] = {
+              subject: randomSubject.subjectName + (randomSubject.subjectType === 'Lab' ? ' (Lab)' : ''),
+              teacher: teacher.teacherName,
+              room: room.roomNo
+            };
+            
+            // Update tracking structures
+            this.teacherSchedule[teacher.teacherName][day][period] = true;
+            this.roomSchedule[room.roomNo][day][period] = true;
+            this.subjectScheduleCount[randomSubject.subjectName] = (this.subjectScheduleCount[randomSubject.subjectName] || 0) + 1;
+            this.teacherDailyLoad[teacher.teacherName][day] = (this.teacherDailyLoad[teacher.teacherName][day] || 0) + 1;
+            this.subjectDailyCount[randomSubject.subjectName][day] = (this.subjectDailyCount[randomSubject.subjectName][day] || 0) + 1;
+          } else {
+            // If no teacher or room available, use any available room
+            const anyRoom = this.rooms[0];
+            this.schedule[day][period] = {
+              subject: randomSubject.subjectName + (randomSubject.subjectType === 'Lab' ? ' (Lab)' : ''),
+              teacher: "Not Assigned",
+              room: anyRoom.roomNo
+            };
+            
+            // Update tracking structures
+            this.roomSchedule[anyRoom.roomNo][day][period] = true;
+            this.subjectScheduleCount[randomSubject.subjectName] = (this.subjectScheduleCount[randomSubject.subjectName] || 0) + 1;
+            this.subjectDailyCount[randomSubject.subjectName][day] = (this.subjectDailyCount[randomSubject.subjectName][day] || 0) + 1;
+          }
         }
       }
     }
@@ -339,7 +433,7 @@ class Timetable {
       if (!this.schedule[day][period]) {
         if (subject.subjectType === 'Lab') {
           if (period < PERIODS - 1 && !this.schedule[day][period + 1]) {
-            const teacher = this.findTeacher(subject.subjectName);
+            const teacher = this.findTeacher(subject);
             const rooms = this.findRoomsByType('Lab');
             
             if (teacher && rooms.length > 0) {
@@ -375,7 +469,7 @@ class Timetable {
             }
           }
         } else {
-          const teacher = this.findTeacher(subject.subjectName);
+          const teacher = this.findTeacher(subject);
           const rooms = this.findRoomsByType('Theory');
           
           if (teacher && rooms.length > 0) {
@@ -408,27 +502,6 @@ class Timetable {
     }
   }
 
-  fillDayToMinimum(day, count) {
-    let filled = 0;
-    const maxAttempts = 50;
-    let attempts = 0;
-    
-    while (filled < count && attempts < maxAttempts) {
-      attempts++;
-      
-      const period = Math.floor(Math.random() * PERIODS);
-      
-      if (!this.schedule[day][period]) {
-        const subject = this.findSubjectForEmptySlot(day, period);
-        if (subject) {
-          if (this.fillEmptySlotWithSubject(day, period, subject)) {
-            filled++;
-          }
-        }
-      }
-    }
-  }
-
   fillEmptySlot(day, period) {
     // Try to find a subject that needs more periods
     for (const subject of this.subjects) {
@@ -446,13 +519,14 @@ class Timetable {
   }
 
   fillEmptySlotWithSubject(day, period, subject) {
+    // Try with assigned teacher first
     if (subject.subjectType === 'Lab') {
       if (period < PERIODS - 1 && !this.schedule[day][period + 1]) {
-        const teacher = this.findTeacher(subject.subjectName);
-        const rooms = this.findRoomsByType('Lab');
+        const teacher = this.findTeacher(subject);
+        const labRooms = this.findRoomsByType('Lab');
         
-        if (teacher && rooms.length > 0) {
-          const room = getRandomElement(rooms);
+        if (teacher && labRooms.length > 0) {
+          const room = getRandomElement(labRooms);
           if (this.isSlotAvailable(teacher, room, day, period) &&
               this.isSlotAvailable(teacher, room, day, period + 1) &&
               this.teacherDailyLoad[teacher.teacherName][day] + 2 <= MAX_TEACHER_PERIODS_PER_DAY &&
@@ -461,8 +535,11 @@ class Timetable {
             this.scheduleSlot(subject, teacher, room, day, period + 1);
             return true;
           }
-        } else if (rooms.length > 0) {
-          const room = getRandomElement(rooms);
+        }
+        
+        // If can't schedule with teacher, try without teacher
+        if (labRooms.length > 0) {
+          const room = getRandomElement(labRooms);
           if (!this.roomSchedule[room.roomNo][day][period] &&
               !this.roomSchedule[room.roomNo][day][period + 1] &&
               !this.hasLabOnDay(day)) {
@@ -471,11 +548,13 @@ class Timetable {
               teacher: 'Not Assigned',
               room: room.roomNo
             };
+            
             this.schedule[day][period + 1] = {
               subject: `${subject.subjectName} (Lab) (No Teacher)`,
               teacher: 'Not Assigned',
               room: room.roomNo
             };
+            
             this.roomSchedule[room.roomNo][day][period] = true;
             this.roomSchedule[room.roomNo][day][period + 1] = true;
             this.subjectScheduleCount[subject.subjectName] += 2;
@@ -484,11 +563,12 @@ class Timetable {
         }
       }
     } else {
-      const teacher = this.findTeacher(subject.subjectName);
-      const rooms = this.findRoomsByType('Theory');
+      // For theory subjects
+      const teacher = this.findTeacher(subject);
+      const theoryRooms = this.findRoomsByType('Theory');
       
-      if (teacher && rooms.length > 0) {
-        const room = getRandomElement(rooms);
+      if (teacher && theoryRooms.length > 0) {
+        const room = getRandomElement(theoryRooms);
         if (this.isSlotAvailable(teacher, room, day, period) &&
             this.teacherDailyLoad[teacher.teacherName][day] < MAX_TEACHER_PERIODS_PER_DAY &&
             this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
@@ -496,8 +576,11 @@ class Timetable {
           this.scheduleSlot(subject, teacher, room, day, period);
           return true;
         }
-      } else if (rooms.length > 0) {
-        const room = getRandomElement(rooms);
+      }
+      
+      // If can't schedule with teacher, try without teacher
+      if (theoryRooms.length > 0) {
+        const room = getRandomElement(theoryRooms);
         if (!this.roomSchedule[room.roomNo][day][period] &&
             this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
             !this.hasBackToBackSubject(day, period, subject.subjectName)) {
@@ -506,6 +589,7 @@ class Timetable {
             teacher: 'Not Assigned',
             room: room.roomNo
           };
+          
           this.roomSchedule[room.roomNo][day][period] = true;
           this.subjectScheduleCount[subject.subjectName]++;
           this.subjectDailyCount[subject.subjectName][day]++;
@@ -513,19 +597,86 @@ class Timetable {
         }
       }
     }
-    return false;
+    
+    // If all else fails, force schedule the subject
+    // This is a fallback to ensure no empty slots
+    const roomType = subject.subjectType === 'Lab' ? 'Lab' : 'Theory';
+    const rooms = this.findRoomsByType(roomType);
+    
+    if (rooms.length > 0) {
+      const room = getRandomElement(rooms);
+      
+      // Force schedule even if there are conflicts
+      this.schedule[day][period] = {
+        subject: `${subject.subjectName}${subject.subjectType === 'Lab' ? ' (Lab)' : ''} (Forced)`,
+        teacher: 'Not Assigned',
+        room: room.roomNo
+      };
+      
+      this.roomSchedule[room.roomNo][day][period] = true;
+      this.subjectScheduleCount[subject.subjectName]++;
+      this.subjectDailyCount[subject.subjectName][day]++;
+      return true;
+    }
+    
+    // If no rooms available, use any room
+    const anyRoom = getRandomElement(this.rooms);
+    this.schedule[day][period] = {
+      subject: `${subject.subjectName} (Emergency)`,
+      teacher: 'Not Assigned',
+      room: anyRoom.roomNo
+    };
+    
+    this.roomSchedule[anyRoom.roomNo][day][period] = true;
+    this.subjectScheduleCount[subject.subjectName]++;
+    this.subjectDailyCount[subject.subjectName][day]++;
+    return true;
   }
 
   findSubjectForEmptySlot(day, period) {
-    // First try subjects that need more periods
-    for (const subject of this.subjects) {
-      const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
-      if (scheduledCount < subject.periodsPerWeek) {
-        return subject;
+    // First try subjects that haven't reached their required periods
+    const incompleteSubjects = this.subjects.filter(subject => !this.hasReachedRequiredPeriods(subject));
+    
+    if (incompleteSubjects.length > 0) {
+      // Sort by how many more periods they need (descending)
+      incompleteSubjects.sort((a, b) => {
+        const aRemaining = a.periodsPerWeek - (this.subjectScheduleCount[a.subjectName] || 0);
+        const bRemaining = b.periodsPerWeek - (this.subjectScheduleCount[b.subjectName] || 0);
+        return bRemaining - aRemaining;
+      });
+      
+      // Try each incomplete subject
+      for (const subject of incompleteSubjects) {
+        if (subject.subjectType === 'Lab') {
+          if (period < PERIODS - 1 && !this.schedule[day][period + 1]) {
+            return subject;
+          }
+        } else {
+          // For theory subjects, check if it can be scheduled here
+          const teacher = this.findTeacher(subject);
+          const rooms = this.findRoomsByType('Theory');
+          
+          if (teacher && rooms.length > 0) {
+            const room = getRandomElement(rooms);
+            if (this.isSlotAvailable(teacher, room, day, period) &&
+                this.teacherDailyLoad[teacher.teacherName][day] < MAX_TEACHER_PERIODS_PER_DAY &&
+                this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
+                !this.hasBackToBackSubject(day, period, subject.subjectName)) {
+              return subject;
+            }
+          } else if (rooms.length > 0) {
+            const room = getRandomElement(rooms);
+            if (!this.roomSchedule[room.roomNo][day][period] &&
+                this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
+                !this.hasBackToBackSubject(day, period, subject.subjectName)) {
+              return subject;
+            }
+          }
+        }
       }
     }
     
-    // Then try any subject that can fit
+    // If no incomplete subjects can be scheduled, try any subject that can fit
     const shuffledSubjects = [...this.subjects].sort(() => 0.5 - Math.random());
     for (const subject of shuffledSubjects) {
       if (subject.subjectType === 'Lab') {
@@ -533,55 +684,74 @@ class Timetable {
           return subject;
         }
       } else {
-        return subject;
+        // For theory subjects, check if it can be scheduled here
+        const teacher = this.findTeacher(subject);
+        const rooms = this.findRoomsByType('Theory');
+        
+        if (teacher && rooms.length > 0) {
+          const room = getRandomElement(rooms);
+          if (this.isSlotAvailable(teacher, room, day, period) &&
+              this.teacherDailyLoad[teacher.teacherName][day] < MAX_TEACHER_PERIODS_PER_DAY &&
+              this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
+              !this.hasBackToBackSubject(day, period, subject.subjectName)) {
+            return subject;
+          }
+        } else if (rooms.length > 0) {
+          const room = getRandomElement(rooms);
+          if (!this.roomSchedule[room.roomNo][day][period] &&
+              this.subjectDailyCount[subject.subjectName][day] < MAX_SUBJECT_PERIODS_PER_DAY &&
+              !this.hasBackToBackSubject(day, period, subject.subjectName)) {
+            return subject;
+          }
+        }
       }
     }
     
-    return null;
+    // If no suitable subject found, return any theory subject
+    return this.subjects.find(s => s.subjectType === 'Theory') || this.subjects[0];
   }
 
   calculateFitness() {
     let fitness = 1000; // Start with a base fitness
     
-    // 1. Empty slots (very high penalty)
+    // 1. Check if each subject meets its periodsPerWeek requirement (highest priority)
+    for (const subject of this.subjects) {
+      const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
+      const requiredCount = subject.periodsPerWeek;
+      
+      if (scheduledCount !== requiredCount) {
+        // Heavily penalize if not meeting the required periods
+        fitness -= Math.abs(scheduledCount - requiredCount) * 1000;
+      }
+    }
+    
+    // 2. Empty slots (very high penalty)
     const emptySlots = this.countEmptySlots();
     fitness -= emptySlots * 200;
     
-    // 2. Teacher conflicts (most severe penalty)
+    // 3. Teacher conflicts (most severe penalty)
     const teacherConflicts = this.countTeacherConflicts();
     fitness -= teacherConflicts * 50;
     
-    // 3. Room conflicts
+    // 4. Room conflicts
     const roomConflicts = this.countRoomConflicts();
     fitness -= roomConflicts * 50;
     
-    // 4. Back-to-back same subject (high penalty)
+    // 5. Back-to-back same subject (high penalty)
     const backToBackConflicts = this.countBackToBackSubjectConflicts();
     fitness -= backToBackConflicts * 40;
     
-    // 5. Multiple labs per day (high penalty)
+    // 6. Multiple labs per day (high penalty)
     const multipleLabsPerDay = this.countMultipleLabsPerDay();
     fitness -= multipleLabsPerDay * 60;
     
-    // 6. Teacher daily overload (high penalty)
+    // 7. Teacher daily overload (high penalty)
     const teacherOverloads = this.countTeacherOverloads();
     fitness -= teacherOverloads * 30;
     
-    // 7. Subject distribution issues (medium penalty)
+    // 8. Subject distribution issues (medium penalty)
     const subjectDistributionIssues = this.countSubjectDistributionIssues();
     fitness -= subjectDistributionIssues * 20;
-    
-    // 8. Unscheduled subjects (most important - very high penalty)
-    const unscheduledSubjects = this.countUnscheduledSubjects();
-    fitness -= unscheduledSubjects * 100;
-    
-    // 9. Labs not scheduled consecutively (high penalty)
-    const nonConsecutiveLabs = this.countNonConsecutiveLabs();
-    fitness -= nonConsecutiveLabs * 50;
-    
-    // 10. Unassigned subjects (medium penalty - we want to minimize these)
-    const unassignedSubjects = this.countUnassignedSubjects();
-    fitness -= unassignedSubjects * 15;
     
     this.fitness = Math.max(0, fitness);
     return this.fitness;
@@ -729,54 +899,12 @@ class Timetable {
     return issues;
   }
   
-  countUnscheduledSubjects() {
-    let unscheduled = 0;
-    
-    for (const subject of this.subjects) {
-      const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
-      if (scheduledCount < subject.periodsPerWeek) {
-        unscheduled += (subject.periodsPerWeek - scheduledCount);
-      }
-    }
-    
-    return unscheduled;
+  // Add new helper method to check if a subject has reached its required periods
+  hasReachedRequiredPeriods(subject) {
+    const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
+    return scheduledCount >= subject.periodsPerWeek;
   }
-  
-  countNonConsecutiveLabs() {
-    let violations = 0;
-    
-    for (let day = 0; day < DAYS; day++) {
-      for (let period = 0; period < PERIODS - 1; period++) {
-        const currentSlot = this.schedule[day][period];
-        const nextSlot = this.schedule[day][period + 1];
-        
-        if (currentSlot && currentSlot.subject && currentSlot.subject.includes('Lab')) {
-          if (!nextSlot || !nextSlot.subject || 
-              nextSlot.subject.replace(' (Lab)', '') !== currentSlot.subject.replace(' (Lab)', '')) {
-            violations++;
-          }
-        }
-      }
-    }
-    
-    return violations;
-  }
-  
-  countUnassignedSubjects() {
-    let count = 0;
-    
-    for (let day = 0; day < DAYS; day++) {
-      for (let period = 0; period < PERIODS; period++) {
-        const slot = this.schedule[day][period];
-        if (slot && slot.teacher === 'Not Assigned') {
-          count++;
-        }
-      }
-    }
-    
-    return count;
-  }
-  
+
   crossover(partner) {
     const child = new Timetable(this.semester, this.subjects, this.teachers, this.rooms);
     
@@ -866,7 +994,7 @@ class Timetable {
   }
   
   rescheduleLab(subject, oldDay, oldPeriod) {
-    const teacher = this.findTeacher(subject.subjectName);
+    const teacher = this.findTeacher(subject);
     const labRooms = this.findRoomsByType('Lab');
     
     if (!teacher || labRooms.length === 0) {
@@ -945,7 +1073,7 @@ class Timetable {
   }
   
   rescheduleTheory(subject, oldDay, oldPeriod) {
-    const teacher = this.findTeacher(subject.subjectName);
+    const teacher = this.findTeacher(subject);
     const theoryRooms = this.findRoomsByType('Theory');
     
     if (!teacher || theoryRooms.length === 0) {
@@ -1012,6 +1140,54 @@ class Timetable {
         scheduled = true;
       }
     }
+  }
+
+  countUnscheduledSubjects() {
+    let unscheduled = 0;
+    
+    for (const subject of this.subjects) {
+      const scheduledCount = this.subjectScheduleCount[subject.subjectName] || 0;
+      if (scheduledCount < subject.periodsPerWeek) {
+        unscheduled += (subject.periodsPerWeek - scheduledCount);
+      }
+    }
+    
+    return unscheduled;
+  }
+
+  countNonConsecutiveLabs() {
+    let violations = 0;
+    
+    for (let day = 0; day < DAYS; day++) {
+      for (let period = 0; period < PERIODS - 1; period++) {
+        const currentSlot = this.schedule[day][period];
+        const nextSlot = this.schedule[day][period + 1];
+        
+        if (currentSlot && currentSlot.subject && currentSlot.subject.includes('Lab')) {
+          if (!nextSlot || !nextSlot.subject || 
+              nextSlot.subject.replace(' (Lab)', '') !== currentSlot.subject.replace(' (Lab)', '')) {
+            violations++;
+          }
+        }
+      }
+    }
+    
+    return violations;
+  }
+
+  countUnassignedSubjects() {
+    let count = 0;
+    
+    for (let day = 0; day < DAYS; day++) {
+      for (let period = 0; period < PERIODS; period++) {
+        const slot = this.schedule[day][period];
+        if (slot && slot.teacher === 'Not Assigned') {
+          count++;
+        }
+      }
+    }
+    
+    return count;
   }
 }
 
@@ -1160,6 +1336,7 @@ router.get('/lecturerTimetable', async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 // GET /getSavedTimetable
 router.get("/getSavedTimetable", (req, res) => {
   const department = req.headers.department;
@@ -1194,8 +1371,6 @@ router.get("/getSavedTimetable", (req, res) => {
   );
 });
 
-
-
 router.get('/generateTimetable', async (req, res) => {
   const department = req.headers.department;
   if (!department) return res.status(400).json({ error: "Department required" });
@@ -1225,7 +1400,9 @@ router.get('/generateTimetable', async (req, res) => {
         roomConflicts: bestTimetable.countRoomConflicts(),
         backToBackConflicts: bestTimetable.countBackToBackSubjectConflicts(),
         multipleLabsPerDay: bestTimetable.countMultipleLabsPerDay(),
-        emptySlots: bestTimetable.countEmptySlots()
+        emptySlots: bestTimetable.countEmptySlots(),
+        nonConsecutiveLabs: bestTimetable.countNonConsecutiveLabs(),
+        unassignedSubjects: bestTimetable.countUnassignedSubjects()
       });
     }
 
@@ -1248,7 +1425,9 @@ router.get('/generateTimetable', async (req, res) => {
           teacher: t.teacherConflicts,
           room: t.roomConflicts,
           backToBack: t.backToBackConflicts,
-          multipleLabs: t.multipleLabsPerDay
+          multipleLabs: t.multipleLabsPerDay,
+          nonConsecutiveLabs: t.nonConsecutiveLabs,
+          unassignedSubjects: t.unassignedSubjects
         }
       }))
     });

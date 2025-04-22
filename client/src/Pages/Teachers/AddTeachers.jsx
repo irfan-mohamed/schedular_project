@@ -151,17 +151,17 @@ function AddTeachers() {
     }
   };
   const handlePreferenceDoubleClick = (subject) => {
-    if (!formData.preferences.includes(subject)) {
+    if (!formData.preferences.includes(subject.id)) {
       setFormData((prevData) => ({
         ...prevData,
-        preferences: [...prevData.preferences, subject]
+        preferences: [...prevData.preferences, subject.id]
       }));
     }
   };
-  const handleRemovePreference = (subject) => {
+  const handleRemovePreference = (subjectId) => {
     setFormData((prevData) => ({
       ...prevData,
-      preferences: prevData.preferences.filter((pref) => pref !== subject)
+      preferences: prevData.preferences.filter((pref) => pref !== subjectId)
     }));
   };
 
@@ -265,7 +265,7 @@ function AddTeachers() {
                             <div
                               key={idx}
                               className="py-1 cursor-pointer"
-                              onDoubleClick={() => handlePreferenceDoubleClick(sub.subjectName)}
+                              onDoubleClick={() => handlePreferenceDoubleClick(sub)}
                             >
                               {subLabel}
                             </div>
@@ -277,17 +277,20 @@ function AddTeachers() {
                     {formData.preferences.length > 0 && (
                       <div className="mb-3">
                         <div className="d-flex flex-wrap gap-2">
-                          {formData.preferences.map((pref, index) => (
-                            <span key={index} className="badge bg-primary py-2">
-                              {pref}
-                              <button
-                                type="button"
-                                className="btn-close btn-close-white ms-2"
-                                onClick={() => handleRemovePreference(pref)}
-                                style={{ fontSize: "0.6rem" }}
-                              />
-                            </span>
-                          ))}
+                          {formData.preferences.map((prefId, index) => {
+                            const subject = subjectList.find(sub => sub.id === prefId);
+                            return (
+                              <span key={index} className="badge bg-primary py-2">
+                                {subject ? subject.subjectName : prefId}
+                                <button
+                                  type="button"
+                                  className="btn-close btn-close-white ms-2"
+                                  onClick={() => handleRemovePreference(prefId)}
+                                  style={{ fontSize: "0.6rem" }}
+                                />
+                              </span>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -331,8 +334,14 @@ function AddTeachers() {
                           <td>{item.teacherID}</td>
                           <td>
                             {Array.isArray(item.preferences)
-                              ? item.preferences.join(', ')
-                              : JSON.parse(item.preferences || '[]').join(', ')}
+                              ? item.preferences.map(prefId => {
+                                  const subject = subjectList.find(sub => sub.id === prefId);
+                                  return subject ? subject.subjectName : prefId;
+                                }).join(', ')
+                              : JSON.parse(item.preferences || '[]').map(prefId => {
+                                  const subject = subjectList.find(sub => sub.id === prefId);
+                                  return subject ? subject.subjectName : prefId;
+                                }).join(', ')}
                           </td>
                           <td>{item.email}</td>
                           <td>

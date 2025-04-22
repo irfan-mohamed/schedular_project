@@ -23,6 +23,19 @@ const GenerateTimetable = () => {
   const [timetableData, setTimetableData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [department, setDepartment] = useState("");
+  const [subjects, setSubjects] = useState([]);
+
+  const fetchSubjects = async () => {
+    try {
+      const department = localStorage.getItem("department");
+      const response = await axios.get("http://localhost:5001/api/fetchsubjects", {
+        headers: { department }
+      });
+      setSubjects(response?.data?.data || []);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    }
+  };
 
   const fetchTimetable = async () => {
     try {
@@ -42,6 +55,7 @@ const GenerateTimetable = () => {
   useEffect(() => {
     const storedDepartment = localStorage.getItem("department") || "CSE";
     setDepartment(storedDepartment);
+    fetchSubjects();
   }, []);
 
   const navigate = useNavigate();
@@ -68,7 +82,6 @@ const GenerateTimetable = () => {
       </div>
     );
   };
-  // ✅ Move this INSIDE the component to access `department`
   
   return (
     <div className="container mt-4">
@@ -123,7 +136,6 @@ const GenerateTimetable = () => {
           </div>
         ))}
       </div>
-
     </div>
   );
 };
