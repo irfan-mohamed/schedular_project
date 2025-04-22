@@ -18,7 +18,20 @@ ChartJS.register(
   ArcElement
 );
 
-const periods = ["P1", "P2", "BREAK", "P3", "P4", "LUNCH", "P5", "P6", "BREAK", "P7", "P8"];
+const periods = [
+  { label: "P1", time: "09:00 - 09:50" },
+  { label: "P2", time: "09:50 - 10:40" },
+  { label: "BREAK", time: "10:40 - 10:50", isBreak: true },
+  { label: "P3", time: "10:50 - 11:40" },
+  { label: "P4", time: "11:40 - 12:30" },
+  { label: "LUNCH", time: "12:30 - 01:20", isBreak: true },
+  { label: "P5", time: "01:20 - 02:10" },
+  { label: "P6", time: "02:10 - 03:00" },
+  { label: "BREAK", time: "03:00 - 03:10", isBreak: true },
+  { label: "P7", time: "03:10 - 04:00" },
+  { label: "P8", time: "04:00 - 04:50" },
+];
+
 const weekdays = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 
 const LecturerTimetable = () => {
@@ -55,20 +68,17 @@ const LecturerTimetable = () => {
       let lab = 0;
 
       timetable.forEach((day, dayIndex) => {
+        day.forEach((period, periodIndex) => {
+          // Skip break periods in calculation
+          if (periods[periodIndex].isBreak) return;
 
-        day.forEach((period) => {
-          if (!period || ['BREAK', 'LUNCH'].includes(period.period)) {
-            return;
-          }
+          if (!period || !period.subject) return;
 
           const subject = period.subject || "";
           const teacher = period.teacher || "";
 
           const isFree = !subject || subject === "-" || subject.includes("No Teacher") || teacher === "Not Assigned";
-          if (isFree) {
-            return;
-          }
-
+          if (isFree) return;
 
           hoursPerDay[dayIndex]++;
 
@@ -80,7 +90,7 @@ const LecturerTimetable = () => {
         });
       });
 
-      const totalPossiblePeriods = 5 * 8; // 5 days × 8 periods
+      const totalPossiblePeriods = 5 * 8; // 5 days × 8 periods (excluding breaks)
       const totalOccupied = theory + lab;
       const free = totalPossiblePeriods - totalOccupied;
 
@@ -89,42 +99,42 @@ const LecturerTimetable = () => {
       setAvgClassesPerDay((totalOccupied / 5).toFixed(1));
     };
 
-
-
     fetchLecturerTimetable();
   }, [lecturerName]);
 
-  // Prepare data for daily hours bar chart
-  const dailyHoursData = {
-    labels: weekdays,
-    datasets: [
-      {
-        label: 'Teaching Hours',
-        data: dailyHours,
-        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
+  const renderPeriodCell = (period) => {
+    if (!period || !period.subject) return <span>-</span>;
 
+    const isLab = period.subject.toLowerCase().includes("lab");
+
+    return (
+      <div className="d-flex flex-column align-items-center">
+        <strong className="text-uppercase text-center">
+          {period.subject} {isLab ? <span className="text-muted">(Lab)</span> : null}
+        </strong>
+        <small className="text-muted text-center">{period.room}</small>
+      </div>
+    );
+  };
 
   const handleDownloadPDF = () => {
     const doc = new jsPDF("landscape");
     doc.setFontSize(16);
     doc.text(`Lecturer Timetable - ${lecturerName}`, 14, 15);
 
-    const columns = ["Day / Period", ...periods];
+    const columns = ["Day / Period", ...periods.map((p) => `${p.label}\n${p.time}`)];
     const rows = timetable.slice(0, 5).map((dayData, i) => {
       const row = [weekdays[i]];
-      periods.forEach((period, j) => {
-        const slot = dayData[j];
-        if (period === "BREAK" || period === "LUNCH") {
-          row.push(period);
+      periods.forEach((p, j) => {
+        if (p.isBreak) {
+          row.push(`${p.label}`);
         } else {
-          if (slot && slot.subject) {
-            const isLab = slot.subject.toLowerCase().includes("lab");
-            row.push(`${slot.subject}${isLab ? " (Lab)" : ""}\n${slot.room}`);
+          const period = dayData[j];
+          if (period && period.subject) {
+            const isLab = period.subject.toLowerCase().includes("lab");
+            row.push(
+              `${period.subject}${isLab ? " (Lab)" : ""}\n${period.room}`
+            );
           } else {
             row.push("-");
           }
@@ -153,6 +163,20 @@ const LecturerTimetable = () => {
     doc.save(`Lecturer_Timetable_${lecturerName}.pdf`);
   };
 
+  // Prepare data for daily hours bar chart
+  const dailyHoursData = {
+    labels: weekdays,
+    datasets: [
+      {
+        label: 'Teaching Hours',
+        data: dailyHours,
+        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1,
+      },
+    ],
+  };
+
   // Prepare data for theory vs lab pie chart
   const theoryLabData = {
     labels: ['Theory', 'Lab', 'Free Hours'],
@@ -179,6 +203,7 @@ const LecturerTimetable = () => {
   return (
     <div className="container mt-4">
       <h3 className="text-center mb-4">{lecturerName}'s Timetable</h3>
+      
       {/* Timetable Section */}
       <div className="card">
         <div className="card-header">
@@ -186,37 +211,44 @@ const LecturerTimetable = () => {
         </div>
         <div className="card-body">
           <table className="table table-bordered text-center">
-            <thead>
+            <thead className="thead-dark">
               <tr>
                 <th>Day / Period</th>
                 {periods.map((p, idx) => (
-                  <th key={idx}>{p}</th>
+                  <th key={idx}>
+                    {p.label}
+                    <br />
+                    <small>{p.time}</small>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {timetable.map((day, i) => (
+              {timetable.slice(0, 5).map((dayData, i) => (
                 <tr key={i}>
-                  <td>{weekdays[i]}</td>
-                  {day.map((period, j) => (
-                    <td key={j}>
-                      {period?.subject ? (
-                        <>
-                          <strong>{period.subject}</strong>
-                          <br />
-                          <small>{period.room}</small>
-                        </>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                  ))}
+                  <td className="font-weight-bold">{weekdays[i]}</td>
+                  {periods.map((p, j) => {
+                    if (p.isBreak) {
+                      return (
+                        <td key={j} className="table-warning font-italic align-middle">
+                          {p.label}
+                        </td>
+                      );
+                    } else {
+                      return (
+                        <td key={j} className="align-middle">
+                          {renderPeriodCell(dayData[j])}
+                        </td>
+                      );
+                    }
+                  })}
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
       <div className="text-center my-3">
         <button className="btn btn-danger mx-2" onClick={handleDownloadPDF}>
           Download PDF

@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 function SignInPage() {
     const [signInType, setSignInType] = useState("admin");
-    const [teacherName, setTeacherName] = useState(""); // To store the teacher's name
+    const [teacherName,] = useState(""); // To store the teacher's name
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {

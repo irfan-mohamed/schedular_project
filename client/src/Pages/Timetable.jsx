@@ -3,7 +3,6 @@ import axios from "axios";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useNavigate } from 'react-router-dom';
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SideNavbar from "../../Components/SideNavbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUser, faIdCard, faEnvelope } from "@fortawesome/free-solid-svg-icons";
+import { faUser, faIdCard, faEnvelope, faList } from "@fortawesome/free-solid-svg-icons";
 import axios from 'axios';
 import { confirmAlert } from 'react-confirm-alert';
 import 'react-confirm-alert/src/react-confirm-alert.css';
@@ -10,19 +10,18 @@ import 'react-toastify/dist/ReactToastify.css';
 import './AddTeacher.css'
 
 function AddTeachers() {
-
   const [refereshToken, setRefereshToken] = useState(null);
-
   const [formData, setFormData] = useState({
     teacherName: "",
     teacherID: "",
     preferences: [],
-    email: ""
+    email: "",
+    designation: "AP" // Default value
   });
 
   const [teachers, setTeachers] = useState([]);
   const [subjectList, setSubjectList] = useState([]);
-  const [editingTeacher, setEditingTeacher] = useState(null); // Track the teacher being edited
+  const [editingTeacher, setEditingTeacher] = useState(null);
 
   useEffect(() => {
     fetchTeachers();
@@ -100,7 +99,8 @@ function AddTeachers() {
       teacherName: teacher.teacherName,
       teacherID: teacher.teacherID,
       preferences: teacher.preferences,
-      email: teacher.email
+      email: teacher.email,
+      designation: teacher.designation || "AP" // Set designation when editing
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -171,147 +171,188 @@ function AddTeachers() {
       <ToastContainer />
       <div className="container-fluid">
         <div className="row">
-          <div className="col-auto col-sm-3.2 bg-dark d-flex flex-column justify-content-between min-vh-100">
+          {/* Sidebar - fixed width */}
+          <div className="col-md-3 col-lg-2 d-md-block bg-dark sidebar collapse" style={{ minHeight: '100vh' }}>
             <SideNavbar />
           </div>
-          <div className="col">
-            <h2 className="text-center mt-5 mb-4">Add Teacher</h2>
+          
+          {/* Main content - takes remaining space */}
+          <main className="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div className="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+              <h2 className="h2">Add Teacher</h2>
+            </div>
 
-            <div className="d-flex justify-content-center">
-              <div className="col-sm-6 p-4" style={{ boxShadow: "0 5px 19px rgba(134, 108, 212, 0.4)" }}>
-                <form onSubmit={handleSubmit}>
-                  <div className="mb-3">
-                    <label htmlFor="teacherName" className="form-label">
-                      <FontAwesomeIcon icon={faUser} className="me-2" />
-                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Teacher Name:</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="teacherName"
-                      name="teacherName"
-                      value={formData.teacherName}
-                      onChange={handleChange}
-                      style={{ fontWeight: "bold", borderColor: "#77757c" }}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label htmlFor="teacherID" className="form-label">
-                      <FontAwesomeIcon icon={faIdCard} className="me-2" />
-                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Teacher ID:</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      id="teacherID"
-                      name="teacherID"
-                      value={formData.teacherID}
-                      onChange={handleChange}
-                      style={{ fontWeight: "bold", borderColor: "#77757c" }}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label htmlFor="preferences" className="form-label">
-                      <FontAwesomeIcon icon={faUser} className="me-2" />
-                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Subject Preferences (Double-click to select):</span>
-                    </label>
-                    <div className="form-control" style={{ minHeight: '100px', overflowY: 'auto', borderColor: "#77757c" }}>
-                      {subjectList.map((sub, idx) => {
-                        const subLabel = `${sub.subjectName} (${sub.subjectType}) - Sem ${sub.semester}`;
-                        return (
-                          <div
-                            key={idx}
-                            style={{ cursor: "pointer", padding: "4px", fontWeight: "bold" }}
-                            onDoubleClick={() => handlePreferenceDoubleClick(sub.subjectName)}
-                          >
-                            {subLabel}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Tag display */}
-                  {formData.preferences.length > 0 && (
-                    <div className="mb-3">
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
-                        {formData.preferences.map((pref, index) => (
-                          <span key={index} className="badge bg-primary" style={{ padding: "8px", fontSize: "0.9rem" }}>
-                            {pref}
-                            <button
-                              type="button"
-                              className="btn-close btn-close-white ms-2"
-                              onClick={() => handleRemovePreference(pref)}
-                              style={{ fontSize: "0.6rem" }}
-                            />
-                          </span>
-                        ))}
+            {/* Form Section */}
+            <div className="row">
+              <div className="col-12 col-xl-8 mx-auto">
+                <div className="card shadow-sm p-4 mb-4">
+                  <form onSubmit={handleSubmit}>
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <label htmlFor="teacherName" className="form-label">
+                          <FontAwesomeIcon icon={faUser} className="me-2" />
+                          <span className="fw-bold">Teacher Name:</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="teacherName"
+                          name="teacherName"
+                          value={formData.teacherName}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      
+                      <div className="col-md-6 mb-3">
+                        <label htmlFor="designation" className="form-label">
+                          <FontAwesomeIcon icon={faList} className="me-2" />
+                          <span className="fw-bold">Designation:</span>
+                        </label>
+                        <select
+                          className="form-select"
+                          id="designation"
+                          name="designation"
+                          value={formData.designation}
+                          onChange={handleChange}
+                        >
+                          <option value="AP">Assistant Professor (AP)</option>
+                          <option value="Professor">Professor</option>
+                        </select>
                       </div>
                     </div>
-                  )}
 
+                    <div className="row">
+                      <div className="col-md-6 mb-3">
+                        <label htmlFor="teacherID" className="form-label">
+                          <FontAwesomeIcon icon={faIdCard} className="me-2" />
+                          <span className="fw-bold">Teacher ID:</span>
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="teacherID"
+                          name="teacherID"
+                          value={formData.teacherID}
+                          onChange={handleChange}
+                        />
+                      </div>
+                      
+                      <div className="col-md-6 mb-3">
+                        <label htmlFor="email" className="form-label">
+                          <FontAwesomeIcon icon={faEnvelope} className="me-2" />
+                          <span className="fw-bold">Email:</span>
+                        </label>
+                        <input
+                          type="email"
+                          className="form-control"
+                          id="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                        />
+                      </div>
+                    </div>
 
-                  <div className="mb-3">
-                    <label htmlFor="email" className="form-label">
-                      <FontAwesomeIcon icon={faEnvelope} className="me-2" />
-                      <span style={{ fontSize: "1.2rem", fontWeight: "bold" }}>Email:</span>
-                    </label>
-                    <input
-                      type="email"
-                      className="form-control"
-                      id="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      style={{ fontWeight: "bold", borderColor: "#77757c" }}
-                    />
-                  </div>
+                    <div className="mb-3">
+                      <label htmlFor="preferences" className="form-label">
+                        <FontAwesomeIcon icon={faUser} className="me-2" />
+                        <span className="fw-bold">Subject Preferences (Double-click to select):</span>
+                      </label>
+                      <div className="form-control" style={{ minHeight: '100px', overflowY: 'auto' }}>
+                        {subjectList.map((sub, idx) => {
+                          const subLabel = `${sub.subjectName} (${sub.subjectType}) - Sem ${sub.semester}`;
+                          return (
+                            <div
+                              key={idx}
+                              className="py-1 cursor-pointer"
+                              onDoubleClick={() => handlePreferenceDoubleClick(sub.subjectName)}
+                            >
+                              {subLabel}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                  <div className="mb-3 d-flex justify-content-center">
-                    <button type="submit" className="btn btn-primary" style={{ backgroundColor: "#5c3bcc" }}>
-                      {editingTeacher ? 'Update' : 'Add'}
-                    </button>
-                  </div>
-                </form>
+                    {formData.preferences.length > 0 && (
+                      <div className="mb-3">
+                        <div className="d-flex flex-wrap gap-2">
+                          {formData.preferences.map((pref, index) => (
+                            <span key={index} className="badge bg-primary py-2">
+                              {pref}
+                              <button
+                                type="button"
+                                className="btn-close btn-close-white ms-2"
+                                onClick={() => handleRemovePreference(pref)}
+                                style={{ fontSize: "0.6rem" }}
+                              />
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="d-flex justify-content-center mt-4">
+                      <button type="submit" className="btn btn-primary px-4" style={{ backgroundColor: "#5c3bcc" }}>
+                        {editingTeacher ? 'Update' : 'Add'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
 
-            <div>
-              <h2 className="text-center mt-5 mb-4">Teachers</h2>
-              <table className="table table-striped table-bordered mt-4">
-                <thead className="thead-light">
-                  <tr>
-                    <th className="tables" scope="col">Teacher Name</th>
-                    <th className="tables" scope="col">Teacher ID</th>
-                    <th className="tables" scope="col">Preferences</th>
-                    <th className="tables" scope="col">Email</th>
-                    <th className="tables" scope="col">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {teachers.map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'table-light' : 'table-secondary'}>
-                      <td className="table-data">{item.teacherName}</td>
-                      <td className="table-data">{item.teacherID}</td>
-                      <td className="table-data">
-                        {Array.isArray(item.preferences)
-                          ? item.preferences.join(', ')
-                          : JSON.parse(item.preferences || '[]').join(', ')}
-                      </td>
-                      <td className="table-data">{item.email}</td>
-                      <td className="table-data">
-                        <button className="btn btn-warning" onClick={() => handleUpdate(item)}>Update</button>
-                        <button className="btn btn-danger ms-2" onClick={() => handleDelete(item.id)}>Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            {/* Teachers Table Section */}
+            <div className="row mt-4">
+              <div className="col-12">
+                <div className="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                  <h2 className="h2">Teachers</h2>
+                </div>
+                
+                <div className="table-responsive">
+                  <table className="table table-striped table-hover">
+                    <thead className="table-light">
+                      <tr>
+                        <th scope="col">S.No</th>
+                        <th scope="col">Teacher Name</th>
+                        <th scope="col">Designation</th>
+                        <th scope="col">Teacher ID</th>
+                        <th scope="col">Preferences</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {teachers.map((item, index) => (
+                        <tr key={index}>
+                          <td>{index + 1}</td>
+                          <td>{item.teacherName}</td>
+                          <td>{item.designation || 'AP'}</td>
+                          <td>{item.teacherID}</td>
+                          <td>
+                            {Array.isArray(item.preferences)
+                              ? item.preferences.join(', ')
+                              : JSON.parse(item.preferences || '[]').join(', ')}
+                          </td>
+                          <td>{item.email}</td>
+                          <td>
+                            <div className="d-flex gap-2">
+                              <button className="btn btn-sm btn-warning" onClick={() => handleUpdate(item)}>
+                                Update
+                              </button>
+                              <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.id)}>
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
-          </div>
-
+          </main>
         </div>
       </div>
     </>
