@@ -20,7 +20,6 @@ const DAYS = 5; // Monday to Friday
 const PERIODS = 11; // 8 periods + 3 breaks
 const MAX_TEACHER_PERIODS_PER_DAY = 5; // Maximum periods a teacher can teach in a day
 const MAX_SUBJECT_PERIODS_PER_DAY = 3; // Maximum periods a subject can be scheduled in a day
-const MIN_PERIODS_PER_DAY = 6; // Minimum periods to fill per day
 
 // Helper function to initialize teacher and room schedules
 const initializeSchedules = (teachers, rooms) => {

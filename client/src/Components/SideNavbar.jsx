@@ -1,7 +1,7 @@
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
-import { Link } from 'react-router-dom'; 
+import { Link } from 'react-router-dom';
 
 import '../styling/Sidenavbar.css';
 
@@ -47,6 +47,13 @@ function SideNavbar() {
                   <span className='ms-2 d-none d-sm-inline font-weight-bold fs-5'>GENERATE TIMETABLE</span>
                 </Link>
               </li>
+              <li className="nav-item text-white my-1 mb-5 py-2 py-sm-0">
+                <Link to="/leave-applications" className="nav-link text-white text-center text-sm-start" aria-current="page">
+                  <i className="bi bi-envelope-open fs-3"></i>
+                  <span className='ms-2 d-none d-sm-inline font-weight-bold fs-5'>LEAVE APPLICATIONS</span>
+                </Link>
+              </li>
+
             </ul>
           </div>
         </div>

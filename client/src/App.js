@@ -10,6 +10,8 @@ import AddSubjects from './Pages/Subjects/AddSubjects';
 import AddTeacher from './Pages/Teachers/AddTeachers';
 import AddRooms from './Pages/Rooms/AddRooms';
 import GenerateTimetable from './Pages/Generate/GenerateTimetable'
+import LeaveApplication from './Pages/LeaveApplication';
+import LeaveApplications from './Pages/LeaveApplications';
 
 import Home from './Pages/Home'
 import './styling/HomePage.css'
@@ -31,12 +33,15 @@ function App() {
         <Route path="/add-subject" element={<AddSubjects />} />
         <Route path="/add-teachers" element={<AddTeacher />} />
         <Route path="/add-classrooms" element={<AddRooms />} />
-        
+        <Route path="/leave-applications" element={<LeaveApplications />} />
+
         <Route path="/generate" element={<AddSubjects/>}></Route>
         <Route path="/generate-timetable" element={<GenerateTimetable />}></Route>
         <Route path="/lecturer-timetable/:lecturerName" element={<LecturerTimetable />} />
         <Route path="/lecturer-timetable/:teacherID" element={<LecturerTimetable />} />
         <Route path="/timetables" element={<SavedTimetablePage />} />
+        <Route path="/leave-application/:lecturerName" element={<LeaveApplication />} />
+        <Route path="/notifications" element={<div>Notifications Page (Coming Soon)</div>} />
 
       </Routes>
     </Router>

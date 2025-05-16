@@ -6,6 +6,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import Sidebar from '../Components/Sidebar';
 
 // Register ChartJS components
 ChartJS.register(
@@ -201,129 +202,132 @@ const LecturerTimetable = () => {
   if (loading) return <div className="text-center mt-4">Loading timetable for {lecturerName}...</div>;
 
   return (
-    <div className="container mt-4">
-      <h3 className="text-center mb-4">{lecturerName}'s Timetable</h3>
-      
-      {/* Timetable Section */}
-      <div className="card">
-        <div className="card-header">
-          <h5>Detailed Timetable</h5>
-        </div>
-        <div className="card-body">
-          <table className="table table-bordered text-center">
-            <thead className="thead-dark">
-              <tr>
-                <th>Day / Period</th>
-                {periods.map((p, idx) => (
-                  <th key={idx}>
-                    {p.label}
-                    <br />
-                    <small>{p.time}</small>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {timetable.slice(0, 5).map((dayData, i) => (
-                <tr key={i}>
-                  <td className="font-weight-bold">{weekdays[i]}</td>
-                  {periods.map((p, j) => {
-                    if (p.isBreak) {
-                      return (
-                        <td key={j} className="table-warning font-italic align-middle">
-                          {p.label}
-                        </td>
-                      );
-                    } else {
-                      return (
-                        <td key={j} className="align-middle">
-                          {renderPeriodCell(dayData[j])}
-                        </td>
-                      );
-                    }
-                  })}
+    <div className="d-flex">
+      <Sidebar />
+      <div className="container mt-4" style={{ marginLeft: '250px' }}>
+        <h3 className="text-center mb-4">{lecturerName}'s Timetable</h3>
+        
+        {/* Timetable Section */}
+        <div className="card">
+          <div className="card-header">
+            <h5>Detailed Timetable</h5>
+          </div>
+          <div className="card-body">
+            <table className="table table-bordered text-center">
+              <thead className="thead-dark">
+                <tr>
+                  <th>Day / Period</th>
+                  {periods.map((p, idx) => (
+                    <th key={idx}>
+                      {p.label}
+                      <br />
+                      <small>{p.time}</small>
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {timetable.slice(0, 5).map((dayData, i) => (
+                  <tr key={i}>
+                    <td className="font-weight-bold">{weekdays[i]}</td>
+                    {periods.map((p, j) => {
+                      if (p.isBreak) {
+                        return (
+                          <td key={j} className="table-warning font-italic align-middle">
+                            {p.label}
+                          </td>
+                        );
+                      } else {
+                        return (
+                          <td key={j} className="align-middle">
+                            {renderPeriodCell(dayData[j])}
+                          </td>
+                        );
+                      }
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <div className="text-center my-3">
-        <button className="btn btn-danger mx-2" onClick={handleDownloadPDF}>
-          Download PDF
-        </button>
-      </div>
+        <div className="text-center my-3">
+          <button className="btn btn-danger mx-2" onClick={handleDownloadPDF}>
+            Download PDF
+          </button>
+        </div>
 
-      {/* Dashboard Section */}
-      <div className="row mb-4">
-        <div className="col-md-12 mt-3">
-          <div className="card">
-            <div className="card-header">
-              <h5>Statistics</h5>
-            </div>
-            <div className="card-body">
-              <div className="row">
-                <div className="col-md-4">
-                  <div className="card text-center">
-                    <div className="card-body">
-                      <h5 className="card-title">Average Classes per Day</h5>
-                      <p className="card-text display-4">{avgClassesPerDay}</p>
+        {/* Dashboard Section */}
+        <div className="row mb-4">
+          <div className="col-md-12 mt-3">
+            <div className="card">
+              <div className="card-header">
+                <h5>Statistics</h5>
+              </div>
+              <div className="card-body">
+                <div className="row">
+                  <div className="col-md-4">
+                    <div className="card text-center">
+                      <div className="card-body">
+                        <h5 className="card-title">Average Classes per Day</h5>
+                        <p className="card-text display-4">{avgClassesPerDay}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="card text-center">
-                    <div className="card-body">
-                      <h5 className="card-title">Total Theory Hours</h5>
-                      <p className="card-text display-4">{theoryLabStats.theory}</p>
+                  <div className="col-md-4">
+                    <div className="card text-center">
+                      <div className="card-body">
+                        <h5 className="card-title">Total Theory Hours</h5>
+                        <p className="card-text display-4">{theoryLabStats.theory}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="col-md-4">
-                  <div className="card text-center">
-                    <div className="card-body">
-                      <h5 className="card-title">Total Lab Hours</h5>
-                      <p className="card-text display-4">{theoryLabStats.lab}</p>
+                  <div className="col-md-4">
+                    <div className="card text-center">
+                      <div className="card-body">
+                        <h5 className="card-title">Total Lab Hours</h5>
+                        <p className="card-text display-4">{theoryLabStats.lab}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-header">
-              <h5>Daily Class Hours</h5>
-            </div>
-            <div className="card-body">
-              <Bar
-                data={dailyHoursData}
-                options={{
-                  responsive: true,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      title: {
-                        display: true,
-                        text: 'Hours'
+          <div className="col-md-6">
+            <div className="card">
+              <div className="card-header">
+                <h5>Daily Class Hours</h5>
+              </div>
+              <div className="card-body">
+                <Bar
+                  data={dailyHoursData}
+                  options={{
+                    responsive: true,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        title: {
+                          display: true,
+                          text: 'Hours'
+                        }
                       }
                     }
-                  }
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="col-md-6">
-          <div className="card">
-            <div className="card-header">
-              <h5>Theory vs Lab Hours</h5>
-            </div>
-            <div className="card-body">
-              <Pie data={theoryLabData} />
+          <div className="col-md-6">
+            <div className="card">
+              <div className="card-header">
+                <h5>Theory vs Lab Hours</h5>
+              </div>
+              <div className="card-body">
+                <Pie data={theoryLabData} />
+              </div>
             </div>
           </div>
         </div>
